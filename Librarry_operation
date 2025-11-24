@@ -1,0 +1,281 @@
+package com.Library;
+import java.sql.*;
+import java.util.Scanner;
+
+public class LibraryOperations {
+
+    
+    // Inserts a new book record into the database.
+     
+    public void addBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter unique Book ID (INT): ");
+        int bookId = sc.nextInt();
+        sc.nextLine(); // Consume newline
+        System.out.print("Enter Book Title: ");
+        String title = sc.nextLine();
+        
+        // SQL to insert a new book, default status is not borrowed, borrower is NULL
+        String insert = "INSERT INTO library_books (book_id, title, is_borrowed, borrower_name) VALUES (?, ?, FALSE, NULL)";
+        
+        try (PreparedStatement ps = con.prepareStatement(insert)) {
+            ps.setInt(1, bookId);
+            ps.setString(2, title);
+            
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println(" Book '" + title + "' added successfully! ✅");
+            } else {
+                System.out.println("Failed to add book.");
+            }
+        } catch (SQLIntegrityConstraintViolationException e) {
+            System.out.println(" Error: Book ID " + bookId + " already exists. Please choose a unique ID.");
+        }
+    }
+
+    
+     // Updates the book status to 'borrowed'.
+    
+    public void borrowBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter Book ID to Borrow: ");
+        int bookId = sc.nextInt();
+        sc.nextLine();
+        System.out.print("Enter Borrower's Name: ");
+        String borrower = sc.nextLine();
+
+        // Only allow borrowing if the book is currently NOT borrowed (is_borrowed = FALSE)
+        String update = "UPDATE library_books SET borrower_name = ?, is_borrowed = TRUE WHERE book_id = ? AND is_borrowed = FALSE";
+        
+        try (PreparedStatement ps = con.prepareStatement(update)) {
+            ps.setString(1, borrower);
+            ps.setInt(2, bookId);
+            
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println(" Book " + bookId + " borrowed successfully by " + borrower + "! 📚");
+            } else {
+                // Check why the update failed (book not found or already borrowed)
+                String check = "SELECT is_borrowed FROM library_books WHERE book_id = ?";
+                try (PreparedStatement checkPs = con.prepareStatement(check)) {
+                    checkPs.setInt(1, bookId);
+                    try (ResultSet rs = checkPs.executeQuery()) {
+                        if (rs.next()) {
+                            if (rs.getBoolean("is_borrowed")) {
+                                System.out.println(" Book " + bookId + " is already borrowed.");
+                            } else {
+                                System.out.println(" Book " + bookId + " is currently unavailable for another reason.");
+                            }
+                        } else {
+                            System.out.println(" Book " + bookId + " not found.");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    
+     // Updates the book status to 'available'.
+     
+    public void returnBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter Book ID to Return: ");
+        int bookId = sc.nextInt();
+
+        // Only allow returning if the book is currently borrowed (is_borrowed = TRUE)
+        String update = "UPDATE library_books SET borrower_name = NULL, is_borrowed = FALSE WHERE book_id = ? AND is_borrowed = TRUE";
+        
+        try (PreparedStatement ps = con.prepareStatement(update)) {
+            ps.setInt(1, bookId);
+            int rows = ps.executeUpdate();
+            
+            System.out.println(rows > 0 ? " Book " + bookId + " returned successfully. Now available. ✅" : " Book " + bookId + " was not checked out or not found!");
+        }
+    }
+
+    
+     // Retrieves and displays all books from the database.
+     
+    public void viewAllBooks(Connection con) throws SQLException {
+        String query = "SELECT book_id, title, borrower_name, is_borrowed FROM library_books ORDER BY book_id";
+        
+        try (Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            System.out.println("\n--- Library Book Inventory ---");
+            System.out.printf("%-10s | %-30s | %-12s | %s%n", "ID", "TITLE", "STATUS", "BORROWER");
+            System.out.println("-----------------------------------------------------------------");
+
+            if (!rs.isBeforeFirst()) {
+                System.out.println("No books in the library.");
+            }
+            
+            while (rs.next()) {
+                int id = rs.getInt("book_id");
+                String title = rs.getString("title");
+                boolean borrowed = rs.getBoolean("is_borrowed");
+                String borrower = rs.getString("borrower_name");
+
+                String status = borrowed ? "BORROWED" : "Available";
+                String displayBorrower = borrowed ? borrower : "N/A";
+
+                System.out.printf("%-10d | %-30s | %-12s | %s%n", id, title, status, displayBorrower);
+            }
+            System.out.println("-----------------------------------------------------------------");
+        }
+    }
+
+    
+     //Permanently deletes a book record from the database.
+    public void deleteBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter Book ID to DELETE (Permanent Removal): ");
+        int bookId = sc.nextInt();
+
+        String delete = "DELETE FROM library_books WHERE book_id = ?";
+        
+        try (PreparedStatement ps = con.prepareStatement(delete)) {
+            ps.setInt(1, bookId);
+            int rows = ps.executeUpdate();
+            
+            System.out.println(rows > 0 ? "Book " + bookId + " record deleted from the system." : " Book not found!");
+        }
+    }
+}package com.Library;
+import java.sql.*;
+import java.util.Scanner;
+
+public class LibraryOperations {
+
+    
+    // Inserts a new book record into the database.
+     
+    public void addBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter unique Book ID (INT): ");
+        int bookId = sc.nextInt();
+        sc.nextLine(); // Consume newline
+        System.out.print("Enter Book Title: ");
+        String title = sc.nextLine();
+        
+        // SQL to insert a new book, default status is not borrowed, borrower is NULL
+        String insert = "INSERT INTO library_books (book_id, title, is_borrowed, borrower_name) VALUES (?, ?, FALSE, NULL)";
+        
+        try (PreparedStatement ps = con.prepareStatement(insert)) {
+            ps.setInt(1, bookId);
+            ps.setString(2, title);
+            
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println(" Book '" + title + "' added successfully! ✅");
+            } else {
+                System.out.println("Failed to add book.");
+            }
+        } catch (SQLIntegrityConstraintViolationException e) {
+            System.out.println(" Error: Book ID " + bookId + " already exists. Please choose a unique ID.");
+        }
+    }
+
+    
+     // Updates the book status to 'borrowed'.
+    
+    public void borrowBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter Book ID to Borrow: ");
+        int bookId = sc.nextInt();
+        sc.nextLine();
+        System.out.print("Enter Borrower's Name: ");
+        String borrower = sc.nextLine();
+
+        // Only allow borrowing if the book is currently NOT borrowed (is_borrowed = FALSE)
+        String update = "UPDATE library_books SET borrower_name = ?, is_borrowed = TRUE WHERE book_id = ? AND is_borrowed = FALSE";
+        
+        try (PreparedStatement ps = con.prepareStatement(update)) {
+            ps.setString(1, borrower);
+            ps.setInt(2, bookId);
+            
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println(" Book " + bookId + " borrowed successfully by " + borrower + "! 📚");
+            } else {
+                // Check why the update failed (book not found or already borrowed)
+                String check = "SELECT is_borrowed FROM library_books WHERE book_id = ?";
+                try (PreparedStatement checkPs = con.prepareStatement(check)) {
+                    checkPs.setInt(1, bookId);
+                    try (ResultSet rs = checkPs.executeQuery()) {
+                        if (rs.next()) {
+                            if (rs.getBoolean("is_borrowed")) {
+                                System.out.println(" Book " + bookId + " is already borrowed.");
+                            } else {
+                                System.out.println(" Book " + bookId + " is currently unavailable for another reason.");
+                            }
+                        } else {
+                            System.out.println(" Book " + bookId + " not found.");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    
+     // Updates the book status to 'available'.
+     
+    public void returnBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter Book ID to Return: ");
+        int bookId = sc.nextInt();
+
+        // Only allow returning if the book is currently borrowed (is_borrowed = TRUE)
+        String update = "UPDATE library_books SET borrower_name = NULL, is_borrowed = FALSE WHERE book_id = ? AND is_borrowed = TRUE";
+        
+        try (PreparedStatement ps = con.prepareStatement(update)) {
+            ps.setInt(1, bookId);
+            int rows = ps.executeUpdate();
+            
+            System.out.println(rows > 0 ? " Book " + bookId + " returned successfully. Now available. ✅" : " Book " + bookId + " was not checked out or not found!");
+        }
+    }
+
+    
+     // Retrieves and displays all books from the database.
+     
+    public void viewAllBooks(Connection con) throws SQLException {
+        String query = "SELECT book_id, title, borrower_name, is_borrowed FROM library_books ORDER BY book_id";
+        
+        try (Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            System.out.println("\n--- Library Book Inventory ---");
+            System.out.printf("%-10s | %-30s | %-12s | %s%n", "ID", "TITLE", "STATUS", "BORROWER");
+            System.out.println("-----------------------------------------------------------------");
+
+            if (!rs.isBeforeFirst()) {
+                System.out.println("No books in the library.");
+            }
+            
+            while (rs.next()) {
+                int id = rs.getInt("book_id");
+                String title = rs.getString("title");
+                boolean borrowed = rs.getBoolean("is_borrowed");
+                String borrower = rs.getString("borrower_name");
+
+                String status = borrowed ? "BORROWED" : "Available";
+                String displayBorrower = borrowed ? borrower : "N/A";
+
+                System.out.printf("%-10d | %-30s | %-12s | %s%n", id, title, status, displayBorrower);
+            }
+            System.out.println("-----------------------------------------------------------------");
+        }
+    }
+
+    
+     //Permanently deletes a book record from the database.
+    public void deleteBook(Connection con, Scanner sc) throws SQLException {
+        System.out.print("Enter Book ID to DELETE (Permanent Removal): ");
+        int bookId = sc.nextInt();
+
+        String delete = "DELETE FROM library_books WHERE book_id = ?";
+        
+        try (PreparedStatement ps = con.prepareStatement(delete)) {
+            ps.setInt(1, bookId);
+            int rows = ps.executeUpdate();
+            
+            System.out.println(rows > 0 ? "Book " + bookId + " record deleted from the system." : " Book not found!");
+        }
+    }
+}
